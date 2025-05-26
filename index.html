@@ -1,22 +1,39 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Mi primera página</title>
-    <!-- SDK clásico para navegadores -->
+    <title>Chat Seguro - VDLPYL Studio</title>
+    <!-- Firebase SDK versión clásica -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <!-- Puedes agregar más SDKs de Firebase aquí si los necesitas -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+      body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+      #chat { margin-top: 20px; }
+      .mensaje { padding: 10px; margin: 5px 0; background: white; border-radius: 8px; }
+    </style>
   </head>
   <body>
-    <h1>¡Hola, Gerardo!</h1>
-    <p>Esta es mi primera página subida con Termux y GitHub.</p>
-    <p>Estoy intentando conectar esta página con Firebase</p>
+    <h2>Chat Seguro - VDLPYL Studio</h2>
 
-    <h6>
-      <a href="https://VDLPYL.github.io/VDLPYL">VDLPYL</a>
-    </h6>
+    <div id="login">
+      <label>Tu nombre de usuario:</label>
+      <input type="text" id="usuario" />
+      <button onclick="iniciarSesion()">Entrar</button>
+    </div>
+
+    <div id="chat" style="display:none;">
+      <p>Conectado como: <strong id="usuarioActivo"></strong></p>
+
+      <label>Receptor:</label>
+      <input type="text" id="receptor" placeholder="Nombre del receptor" /><br><br>
+
+      <textarea id="mensaje" placeholder="Escribe tu mensaje..." rows="3" cols="40"></textarea><br>
+      <button onclick="enviarMensaje()">Enviar</button>
+
+      <div id="mensajes"></div>
+    </div>
 
     <script>
-      // Tu configuración de Firebase (misma que antes)
+      // Configuración de Firebase
       var firebaseConfig = {
         apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
         authDomain: "vdlpyl-studio.firebaseapp.com",
@@ -25,10 +42,57 @@
         messagingSenderId: "248043788120",
         appId: "1:248043788120:web:045b3cbc98611f3969772d"
       };
-
-      // Inicializar Firebase
       firebase.initializeApp(firebaseConfig);
-      console.log("✅ Firebase inicializado correctamente (versión clásica)");
+      const db = firebase.firestore();
+
+      let usuario = "";
+
+      function iniciarSesion() {
+        usuario = document.getElementById("usuario").value.trim();
+        if (usuario !== "") {
+          document.getElementById("login").style.display = "none";
+          document.getElementById("chat").style.display = "block";
+          document.getElementById("usuarioActivo").textContent = usuario;
+          cargarMensajes();
+        }
+      }
+
+      function enviarMensaje() {
+        const receptor = document.getElementById("receptor").value.trim();
+        const texto = document.getElementById("mensaje").value.trim();
+        if (texto && receptor) {
+          db.collection("mensajes").add({
+            remitente: usuario,
+            receptor: receptor,
+            texto: texto,
+            fecha: new Date().toISOString(),
+            aceptaEliminar: {
+              [usuario]: false,
+              [receptor]: false
+            }
+          });
+          document.getElementById("mensaje").value = "";
+        }
+      }
+
+      function cargarMensajes() {
+        db.collection("mensajes")
+          .orderBy("fecha")
+          .onSnapshot(snapshot => {
+            const contenedor = document.getElementById("mensajes");
+            contenedor.innerHTML = "";
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              if (data.remitente === usuario || data.receptor === usuario) {
+                const div = document.createElement("div");
+                div.className = "mensaje";
+                div.textContent = `${data.remitente} → ${data.receptor}: ${data.texto}`;
+                contenedor.appendChild(div);
+              }
+            });
+          });
+      }
     </script>
   </body>
 </html>
+
