@@ -2,6 +2,9 @@
 <html>
   <head>
     <title>Mi primera página</title>
+    <!-- SDK clásico para navegadores -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Puedes agregar más SDKs de Firebase aquí si los necesitas -->
   </head>
   <body>
     <h1>¡Hola, Gerardo!</h1>
@@ -9,16 +12,12 @@
     <p>Estoy intentando conectar esta página con Firebase</p>
 
     <h6>
-      <!--home page = página de inicio-->
       <a href="https://VDLPYL.github.io/VDLPYL">VDLPYL</a>
     </h6>
 
-    <!-- SDKs de Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-
     <script>
-      // Tu configuración de Firebase
-      const firebaseConfig = {
+      // Tu configuración de Firebase (misma que antes)
+      var firebaseConfig = {
         apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
         authDomain: "vdlpyl-studio.firebaseapp.com",
         projectId: "vdlpyl-studio",
@@ -27,9 +26,9 @@
         appId: "1:248043788120:web:045b3cbc98611f3969772d"
       };
 
-      // Inicializa Firebase
-      const app = firebase.initializeApp(firebaseConfig);
-      console.log("✅ Firebase inicializado correctamente");
+      // Inicializar Firebase
+      firebase.initializeApp(firebaseConfig);
+      console.log("✅ Firebase inicializado correctamente (versión clásica)");
     </script>
   </body>
 </html>
