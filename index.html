@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat VDLPYL Studio</title>
+  <title>VDLPYL-studio</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-  <h1>Chat VDLPYL Studio</h1>
+  <h1>VDLPYL studio chat</h1>
 
   <div>
     <label>Tu nombre de usuario:</label>
@@ -85,46 +85,38 @@
         .onSnapshot(snapshot => {
           const contenedor = document.getElementById("mensajes");
           contenedor.innerHTML = "";
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.remitente === usuario || data.receptor === usuario) {
-
-const div = document.createElement("div");
-
-const fecha = data.fecha?.toDate?.();
-const fechaTexto = fecha ? `${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Fecha desconocida";
-div.innerHTML = `<strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br><small>${fechaTexto}</small>`;
 
 
-const btnEliminar = document.createElement("button");
-btnEliminar.textContent = "Solicitar eliminación";
-btnEliminar.onclick = () => solicitarEliminacion(doc.id, data);
 
-div.appendChild(btnEliminar);
-contenedor.appendChild(div);
-function solicitarEliminacion(idMensaje, data) {
-  if (!usuario) return;
 
-  const confirmacion = data.confirmacionBorrado || [];
-  if (confirmacion.includes(usuario)) {
-    alert("Ya solicitaste eliminar este mensaje.");
-    return;
+snapshot.forEach(doc => {
+  const data = doc.data();
+  if (data.remitente === usuario || data.receptor === usuario) {
+    const fecha = data.fecha?.toDate?.();
+    const fechaTexto = fecha ? `${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Fecha desconocida";
+
+    let estado = "";
+    const confirmaciones = data.confirmacionBorrado || [];
+    if (confirmaciones.length === 1) {
+      estado = "<em style='color: orange;'>Eliminación pendiente</em>";
+    } else if (confirmaciones.length === 2) {
+      estado = "<em style='color: red;'>Listo para eliminar</em>";
+    }
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br>
+      <small>${fechaTexto}</small><br>
+      ${estado}
+    `;
+    contenedor.appendChild(div);
   }
+});
 
-  confirmacion.push(usuario);
 
-  if (confirmacion.includes(data.remitente) && confirmacion.includes(data.receptor)) {
-    // Ambos aceptaron eliminar
-    db.collection("mensajes").doc(idMensaje).delete().then(() => {
-      console.log("Mensaje eliminado");
-    });
-  } else {
-    // Solo uno ha solicitado, se actualiza el campo
-    db.collection("mensajes").doc(idMensaje).update({
-      confirmacionBorrado: confirmacion
-    }).then(() => {
-      alert("Solicitud de eliminación registrada. Falta la otra persona.");
-    });
+
+
+
   }
 }
 
