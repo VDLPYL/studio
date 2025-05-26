@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat VDLPYL Studio</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+  <h1>Chat VDLPYL Studio</h1>
+
+  <div>
+    <label>Tu nombre de usuario:</label>
+    <input type="text" id="usuario" placeholder="Ej: Gerardo">
+    <br><br>
+    <label>Enviar mensaje a:</label>
+    <input type="text" id="receptor" placeholder="Ej: Maria">
+    <br><br>
+    <textarea id="mensaje" placeholder="Escribe tu mensaje"></textarea>
+    <br>
+    <button onclick="enviarMensaje()">Enviar</button>
+  </div>
+
+  <h3>Mensajes:</h3>
+  <div id="mensajes"></div>
+
+  <script>
+    // Configuración de Firebase
+    var firebaseConfig = {
+      apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
+      authDomain: "vdlpyl-studio.firebaseapp.com",
+      projectId: "vdlpyl-studio",
+      storageBucket: "vdlpyl-studio.appspot.com",
+      messagingSenderId: "248043788120",
+      appId: "1:248043788120:web:045b3cbc98611f3969772d"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let usuario = "";
+
+    document.getElementById("usuario").addEventListener("change", (e) => {
+      usuario = e.target.value;
+      cargarMensajes();
+    });
+
+    function enviarMensaje() {
+      const receptor = document.getElementById("receptor").value;
+      const texto = document.getElementById("mensaje").value;
+
+      if (!usuario || !receptor || !texto) {
+        alert("Completa todos los campos.");
+        return;
+      }
+
+      // Contar los mensajes que ha enviado el usuario
+      db.collection("mensajes")
+        .where("remitente", "==", usuario)
+        .get()
+        .then((snap) => {
+          if (snap.size >= 10) {
+            alert("Solo puedes enviar hasta 10 mensajes.");
+          } else {
+            db.collection("mensajes").add({
+              remitente: usuario,
+              receptor: receptor,
+              texto: texto,
+              fecha: firebase.firestore.FieldValue.serverTimestamp(),
+              confirmacionBorrado: []
+            }).then(() => {
+              document.getElementById("mensaje").value = "";
+            });
+          }
+        });
+    }
+
+    function cargarMensajes() {
+      db.collection("mensajes")
+        .orderBy("fecha")
+        .onSnapshot(snapshot => {
+          const contenedor = document.getElementById("mensajes");
+          contenedor.innerHTML = "";
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.remitente === usuario || data.receptor === usuario) {
+              const div = document.createElement("div");
+              div.textContent = `${data.remitente} → ${data.receptor}: ${data.texto}`;
+              contenedor.appendChild(div);
+            }
+          });
+        });
+    }
+  </script>
+
+  <hr>
+  <h6><a href="https://VDLPYL.github.io/VDLPYL">Volver a VDLPYL</a></h6>
+</body>
+</html>
