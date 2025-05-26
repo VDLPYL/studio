@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Solicitud de acceso</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+  <h2>Solicitud de acceso al sistema de mensajería</h2>
+
+  <label>Nombre de usuario deseado:</label><br>
+  <input type="text" id="usuario" placeholder="Ej: gerardo123"><br><br>
+
+  <label>Nombre real:</label><br>
+  <input type="text" id="nombreReal" placeholder="Ej: Gerardo Pilla"><br><br>
+
+  <label>Teléfono o referencia:</label><br>
+  <input type="text" id="referencia" placeholder="Ej: 0987654321 (opcional)"><br><br>
+
+  <button onclick="enviarSolicitud()">Enviar solicitud</button>
+
+  <p id="estado"></p>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
+      authDomain: "vdlpyl-studio.firebaseapp.com",
+      projectId: "vdlpyl-studio",
+      storageBucket: "vdlpyl-studio.appspot.com",
+      messagingSenderId: "248043788120",
+      appId: "1:248043788120:web:045b3cbc98611f3969772d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function enviarSolicitud() {
+      const usuario = document.getElementById("usuario").value.trim();
+      const nombreReal = document.getElementById("nombreReal").value.trim();
+      const referencia = document.getElementById("referencia").value.trim();
+
+      if (!usuario || !nombreReal) {
+        document.getElementById("estado").innerText = "Completa todos los campos requeridos.";
+        return;
+      }
+
+      db.collection("solicitudes").add({
+        usuario: usuario,
+        nombreReal: nombreReal,
+        referencia: referencia,
+        estado: "pendiente",
+        fecha: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        document.getElementById("estado").innerText = "Solicitud enviada correctamente. Espera aprobación.";
+        document.getElementById("usuario").value = "";
+        document.getElementById("nombreReal").value = "";
+        document.getElementById("referencia").value = "";
+      }).catch((error) => {
+        document.getElementById("estado").innerText = "Error al enviar solicitud.";
+        console.error("Error:", error);
+      });
+    }
+  </script>
+</body>
+</html>
