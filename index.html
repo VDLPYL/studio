@@ -90,7 +90,11 @@
             if (data.remitente === usuario || data.receptor === usuario) {
 
 const div = document.createElement("div");
-div.textContent = `${data.remitente} → ${data.receptor}: ${data.texto}`;
+
+const fecha = data.fecha?.toDate?.();
+const fechaTexto = fecha ? `${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Fecha desconocida";
+div.innerHTML = `<strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br><small>${fechaTexto}</small>`;
+
 
 const btnEliminar = document.createElement("button");
 btnEliminar.textContent = "Solicitar eliminación";
