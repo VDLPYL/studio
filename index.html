@@ -44,10 +44,28 @@
 
     let usuario = "";
 
-    document.getElementById("usuario").addEventListener("change", (e) => {
-      usuario = e.target.value;
-      cargarMensajes();
+
+
+
+
+document.getElementById("usuario").addEventListener("change", (e) => {
+  const nombreIngresado = e.target.value.trim();
+
+  db.collection("usuarios_autorizados")
+    .where("nombre", "==", nombreIngresado)
+    .get()
+    .then((querySnapshot) => {
+      if (!querySnapshot.empty) {
+        usuario = nombreIngresado;
+        cargarMensajes();
+      } else {
+        alert("No estás autorizado para enviar mensajes. Solicita acceso primero.");
+        document.getElementById("usuario").value = "";
+      }
     });
+});
+
+
 
     function enviarMensaje() {
       const receptor = document.getElementById("receptor").value;
