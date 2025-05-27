@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Panel del Administrador - VDLPYL Studio</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body style="display: none;">
+  <h2>Panel del Administrador</h2>
+  <div id="admin-panel" style="display: none;">
+    <input type="text" id="usuarioAprobado" placeholder="Nombre de usuario a aprobar">
+    <button onclick="aprobarUsuario()">Aprobar</button><br><br>
+
+    <input type="text" id="usuarioBloquear" placeholder="Nombre de usuario a bloquear">
+    <button onclick="bloquearUsuario()">Bloquear</button>
+  </div>
+
+  <p id="estado"></p>
+
+  <script>
+    // CONFIGURA AQUÍ TU UID y tu CONTRASEÑA del panel
+    const UID_ADMIN = "AQUÍ_TU_UID";
+    const CLAVE = "1234";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7x1RZs5SkeACub-1j0fmgm6FcXsWTruk",
+      authDomain: "vdlpyl-t.firebaseapp.com",
+      projectId: "vdlpyl-t",
+      storageBucket: "vdlpyl-t.appspot.com",
+      messagingSenderId: "15631607758",
+      appId: "1:15631607758:web:b3c85c16166f46e6f04f96"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        if (user.uid === UID_ADMIN) {
+          const claveIngresada = prompt("Ingresa la contraseña del panel:");
+          if (claveIngresada === CLAVE) {
+            document.getElementById("admin-panel").style.display = "block";
+            document.body.style.display = "block";
+          } else {
+            alert("Contraseña incorrecta.");
+            window.location.href = "login.html";
+          }
+        } else {
+          alert("No tienes permisos de administrador.");
+          window.location.href = "index.html";
+        }
+      } else {
+        alert("Debes iniciar sesión.");
+        window.location.href = "login.html";
+      }
+    });
+
+    function aprobarUsuario() {
+      const usuario = document.getElementById("usuarioAprobado").value.trim();
+      if (!usuario) {
+        alert("Ingresa un nombre de usuario.");
+        return;
+      }
+      db.collection("usuarios_aprobados").doc(usuario).set({ aprobado: true })
+        .then(() => {
+          document.getElementById("estado").innerText = "Usuario aprobado correctamente.";
+        })
+        .catch(error => {
+          document.getElementById("estado").innerText = "Error: " + error.message;
+        });
+    }
+
+    function bloquearUsuario() {
+      const usuario = document.getElementById("usuarioBloquear").value.trim();
+      if (!usuario) {
+        alert("Ingresa un nombre de usuario.");
+        return;
+      }
+      db.collection("usuarios_aprobados").doc(usuario).delete()
+        .then(() => {
+          document.getElementById("estado").innerText = "Usuario bloqueado correctamente.";
+        })
+        .catch(error => {
+          document.getElementById("estado").innerText = "Error: " + error.message;
+        });
+    }
+  </script>
+</body>
+</html>
