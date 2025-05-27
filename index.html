@@ -1,56 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VDLPYL-sdc</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <title>VDLPYL Studio - Chat</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    #mensajes { margin-top: 20px; }
+    .mensaje { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+  </style>
 </head>
-<body style="display: none">
-  <h1>Servicio de carrera</h1>
+<body style="display: none;">
+  <h1>VDLPYL Studio - Chat</h1>
 
-  <div>
-    <label>Enviar mensaje a:</label>
-    <input type="text" id="receptor" placeholder="Ej: maria@gmail.com">
-    <br><br>
-    <textarea id="mensaje" placeholder="Escribe tu mensaje"></textarea>
-    <br>
-    <button onclick="enviarMensaje()">Enviar</button>
-  </div>
+  <p>Enviar mensaje a: <input type="text" id="receptor" placeholder="Nombre de usuario del receptor"></p>
+  <textarea id="mensaje" placeholder="Escribe tu mensaje..."></textarea><br>
+  <button onclick="enviarMensaje()">Enviar</button>
 
-  <h3>Mensajes:</h3>
+  <h2>Mensajes</h2>
   <div id="mensajes"></div>
 
   <script>
     // Configuración de Firebase
-    var firebaseConfig = {
-      apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
-      authDomain: "vdlpyl-studio.firebaseapp.com",
-      projectId: "vdlpyl-studio",
-      storageBucket: "vdlpyl-studio.appspot.com",
-      messagingSenderId: "248043788120",
-      appId: "1:248043788120:web:045b3cbc98611f3969772d"
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7x1RZs5SkeACub-1j0fmgm6FcXsWTruk",
+      authDomain: "vdlpyl-t.firebaseapp.com",
+      projectId: "vdlpyl-t",
+      storageBucket: "vdlpyl-t.appspot.com",
+      messagingSenderId: "15631607758",
+      appId: "1:15631607758:web:b3c85c16166f46e6f04f96"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
     let usuario = "";
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        usuario = user.email;
-
-        db.collection("usuarios_aprobados").doc(usuario).get().then(doc => {
+        db.collection("usuarios").doc(user.uid).get().then(doc => {
           if (doc.exists) {
-            document.body.style.display = "block";
-            cargarMensajes();
+            usuario = doc.data().nombre;
+
+            db.collection("usuarios_aprobados").doc(usuario).get().then(doc => {
+              if (doc.exists) {
+                document.body.style.display = "block";
+                cargarMensajes();
+              } else {
+                alert("Tu acceso no ha sido aprobado por el administrador.");
+                window.location.href = "login.html";
+              }
+            });
+
           } else {
-            alert("Tu acceso no ha sido aprobado por el administrador.");
+            alert("No se encontró tu nombre de usuario.");
             window.location.href = "login.html";
           }
         });
-
       } else {
         alert("Debes iniciar sesión.");
         window.location.href = "login.html";
@@ -61,93 +67,71 @@
       const receptor = document.getElementById("receptor").value.trim();
       const texto = document.getElementById("mensaje").value.trim();
 
-      if (!usuario || !receptor || !texto) {
-        alert("Completa todos los campos.");
+      if (!receptor || !texto) {
+        alert("Debes completar ambos campos.");
         return;
       }
 
+      // Verificar si ya ha enviado 10 mensajes
       db.collection("mensajes")
         .where("remitente", "==", usuario)
         .get()
-        .then((snap) => {
-          if (snap.size >= 10) {
-            alert("Solo puedes enviar hasta 10 mensajes.");
+        .then(snapshot => {
+          if (snapshot.size >= 10) {
+            alert("Has alcanzado el límite de 10 mensajes.");
           } else {
             db.collection("mensajes").add({
               remitente: usuario,
               receptor: receptor,
               texto: texto,
-              fecha: firebase.firestore.FieldValue.serverTimestamp(),
-              confirmacionBorrado: []
-            }).then(() => {
-              document.getElementById("mensaje").value = "";
+              fecha: new Date(),
+              remitenteConfirmaEliminacion: false,
+              receptorConfirmaEliminacion: false
             });
+            document.getElementById("mensaje").value = "";
           }
         });
     }
 
     function cargarMensajes() {
-      db.collection("mensajes")
-        .orderBy("fecha")
-        .onSnapshot(snapshot => {
-          const contenedor = document.getElementById("mensajes");
-          contenedor.innerHTML = "";
-
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.remitente === usuario || data.receptor === usuario) {
-              const fecha = data.fecha?.toDate?.();
-              const fechaTexto = fecha ? `${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Fecha desconocida";
-
-              let estado = "";
-              const confirmaciones = data.confirmacionBorrado || [];
-              if (confirmaciones.length === 1) {
-                estado = "<em style='color: orange;'>Eliminación pendiente</em>";
-              } else if (confirmaciones.length === 2) {
-                estado = "<em style='color: red;'>Listo para eliminar</em>";
-              }
-
-              const div = document.createElement("div");
-              div.innerHTML = `
-                <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br>
-                <small>${fechaTexto}</small><br>
-                ${estado}
-                <br>
-                <button onclick="intentarEliminarMensaje('${doc.id}')">
-                  Eliminar
-                </button>
-                <hr>
-              `;
-              contenedor.appendChild(div);
-            }
-          });
+      db.collection("mensajes").orderBy("fecha", "desc").onSnapshot(snapshot => {
+        const contenedor = document.getElementById("mensajes");
+        contenedor.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.remitente === usuario || data.receptor === usuario) {
+            const div = document.createElement("div");
+            div.className = "mensaje";
+            div.innerHTML = `
+              <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}
+              <br><small>${data.fecha.toDate().toLocaleString()}</small>
+              <br><button onclick="confirmarEliminacion('${doc.id}')">Solicitar eliminación</button>
+            `;
+            contenedor.appendChild(div);
+          }
         });
+      });
     }
 
-    function intentarEliminarMensaje(id) {
-      db.collection("mensajes").doc(id).get().then(doc => {
+    function confirmarEliminacion(idMensaje) {
+      db.collection("mensajes").doc(idMensaje).get().then(doc => {
         const data = doc.data();
-        const confirmaciones = data.confirmacionBorrado || [];
-
-        if (confirmaciones.includes(usuario)) {
-          alert("Ya solicitaste eliminar este mensaje.");
-          return;
+        if (data.remitente === usuario) {
+          db.collection("mensajes").doc(idMensaje).update({
+            remitenteConfirmaEliminacion: true
+          });
+        } else if (data.receptor === usuario) {
+          db.collection("mensajes").doc(idMensaje).update({
+            receptorConfirmaEliminacion: true
+          });
         }
 
-        confirmaciones.push(usuario);
-
-        if (confirmaciones.length === 2) {
-          db.collection("mensajes").doc(id).delete();
-        } else {
-          db.collection("mensajes").doc(id).update({
-            confirmacionBorrado: confirmaciones
-          });
+        // Verificar si ambas partes confirmaron
+        if (data.remitenteConfirmaEliminacion && data.receptorConfirmaEliminacion) {
+          db.collection("mensajes").doc(idMensaje).delete();
         }
       });
     }
   </script>
-
-  <hr>
-  <h6><a href="https://VDLPYL.github.io/VDLPYL">VDLPYL</a></h6>
 </body>
 </html>
