@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Iniciar sesión - VDLPYL</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+  <h2>Iniciar sesión o registrarse</h2>
+
+  <input type="email" id="email" placeholder="Correo electrónico"><br><br>
+  <input type="password" id="password" placeholder="Contraseña"><br><br>
+
+  <button onclick="registrarse()">Registrarse</button>
+  <button onclick="iniciarSesion()">Iniciar Sesión</button>
+
+  <p id="estado"></p>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
+      authDomain: "vdlpyl-studio.firebaseapp.com",
+      projectId: "vdlpyl-studio",
+      storageBucket: "vdlpyl-studio.appspot.com",
+      messagingSenderId: "248043788120",
+      appId: "1:248043788120:web:045b3cbc98611f3969772d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function registrarse() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((cred) => {
+          const nombre = prompt("Ingresa tu nombre de usuario (solo una vez):");
+          return db.collection("usuarios").doc(cred.user.uid).set({
+            nombre: nombre,
+            email: email
+          });
+        })
+        .then(() => {
+          document.getElementById("estado").innerText = "¡Registro exitoso! Ahora puedes ir al chat.";
+        })
+        .catch(error => {
+          document.getElementById("estado").innerText = "Error: " + error.message;
+        });
+    }
+
+    function iniciarSesion() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          document.getElementById("estado").innerText = "Inicio de sesión correcto. Redirigiendo...";
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 1500);
+        })
+        .catch(error => {
+          document.getElementById("estado").innerText = "Error: " + error.message;
+        });
+    }
+  </script>
+</body>
+</html>
