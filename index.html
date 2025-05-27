@@ -3,17 +3,15 @@
 <head>
   <title>VDLPYL-sdc</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
-<body>
+<body style="display: none">
   <h1>Servicio de carrera</h1>
 
   <div>
-    <label>Tu nombre de usuario:</label>
-    <input type="text" id="usuario" placeholder="Ej: Gerardo">
-    <br><br>
     <label>Enviar mensaje a:</label>
-    <input type="text" id="receptor" placeholder="Ej: Maria">
+    <input type="text" id="receptor" placeholder="Ej: maria@gmail.com">
     <br><br>
     <textarea id="mensaje" placeholder="Escribe tu mensaje"></textarea>
     <br>
@@ -22,11 +20,6 @@
 
   <h3>Mensajes:</h3>
   <div id="mensajes"></div>
-
-
-
-
-
 
   <script>
     // Configuración de Firebase
@@ -44,39 +37,35 @@
 
     let usuario = "";
 
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        usuario = user.email;
 
+        db.collection("usuarios_aprobados").doc(usuario).get().then(doc => {
+          if (doc.exists) {
+            document.body.style.display = "block";
+            cargarMensajes();
+          } else {
+            alert("Tu acceso no ha sido aprobado por el administrador.");
+            window.location.href = "login.html";
+          }
+        });
 
-
-
-document.getElementById("usuario").addEventListener("change", (e) => {
-  const nombreIngresado = e.target.value.trim();
-
-  db.collection("usuarios_autorizados")
-    .where("nombre", "==", nombreIngresado)
-    .get()
-    .then((querySnapshot) => {
-      if (!querySnapshot.empty) {
-        usuario = nombreIngresado;
-        cargarMensajes();
       } else {
-        alert("No estás autorizado para enviar mensajes. Solicita acceso primero.");
-        document.getElementById("usuario").value = "";
+        alert("Debes iniciar sesión.");
+        window.location.href = "login.html";
       }
     });
-});
-
-
 
     function enviarMensaje() {
-      const receptor = document.getElementById("receptor").value;
-      const texto = document.getElementById("mensaje").value;
+      const receptor = document.getElementById("receptor").value.trim();
+      const texto = document.getElementById("mensaje").value.trim();
 
       if (!usuario || !receptor || !texto) {
         alert("Completa todos los campos.");
         return;
       }
 
-      // Contar los mensajes que ha enviado el usuario
       db.collection("mensajes")
         .where("remitente", "==", usuario)
         .get()
@@ -96,11 +85,6 @@ document.getElementById("usuario").addEventListener("change", (e) => {
           }
         });
     }
-
-
-
-
-
 
     function cargarMensajes() {
       db.collection("mensajes")
@@ -123,55 +107,44 @@ document.getElementById("usuario").addEventListener("change", (e) => {
                 estado = "<em style='color: red;'>Listo para eliminar</em>";
               }
 
-
-
-
-
-const div = document.createElement("div");
-div.innerHTML = `
-  <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br>
-  <small>${fechaTexto}</small><br>
-  ${estado}
-  <br>
-  <button onclick="intentarEliminarMensaje('${doc.id}', '${usuario}', ['${data.remitente}', '${data.receptor}'])">
-    Eliminar
-  </button>
-`;
-contenedor.appendChild(div);
-
-
-
+              const div = document.createElement("div");
+              div.innerHTML = `
+                <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}<br>
+                <small>${fechaTexto}</small><br>
+                ${estado}
+                <br>
+                <button onclick="intentarEliminarMensaje('${doc.id}')">
+                  Eliminar
+                </button>
+                <hr>
+              `;
+              contenedor.appendChild(div);
             }
           });
         });
     }
 
+    function intentarEliminarMensaje(id) {
+      db.collection("mensajes").doc(id).get().then(doc => {
+        const data = doc.data();
+        const confirmaciones = data.confirmacionBorrado || [];
 
-function intentarEliminarMensaje(id, usuario, participantes) {
-  db.collection("mensajes").doc(id).get().then(doc => {
-    const data = doc.data();
-    const confirmaciones = data.confirmacionBorrado || [];
+        if (confirmaciones.includes(usuario)) {
+          alert("Ya solicitaste eliminar este mensaje.");
+          return;
+        }
 
-    if (confirmaciones.includes(usuario)) {
-      alert("Ya solicitaste eliminar este mensaje.");
-      return;
-    }
+        confirmaciones.push(usuario);
 
-    confirmaciones.push(usuario);
-
-    if (confirmaciones.length === 2) {
-      // Ambos confirmaron: eliminar el mensaje
-      db.collection("mensajes").doc(id).delete();
-    } else {
-      // Solo uno ha confirmado, guardar la confirmación
-      db.collection("mensajes").doc(id).update({
-        confirmacionBorrado: confirmaciones
+        if (confirmaciones.length === 2) {
+          db.collection("mensajes").doc(id).delete();
+        } else {
+          db.collection("mensajes").doc(id).update({
+            confirmacionBorrado: confirmaciones
+          });
+        }
       });
     }
-  });
-}
-
-
   </script>
 
   <hr>
