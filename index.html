@@ -1,7 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>VDLPYL Studio - Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicio de carrera</title>
+    <link rel="stylesheet" type="text/css" href="index.css">
+
+
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -9,21 +14,26 @@
     body { font-family: Arial; margin: 20px; }
     #mensajes { margin-top: 20px; }
     .mensaje { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+    .eliminacion-solicitada { color: red; font-size: 12px; }
+    #cerrarSesion { margin-top: 20px; background-color: crimson; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body style="display: none;">
-  <h1>VDLPYL Studio - Chat</h1>
+  <h1><n>Servicio de carrera</n></h1>
+  <h2 id="userNameDisplay" style="font-size: 16px; margin-top: 5px;"></h2>
 
   <p>Enviar mensaje a: <input type="text" id="receptor" placeholder="Nombre de usuario del receptor"></p>
   <textarea id="mensaje" placeholder="Escribe tu mensaje..."></textarea><br>
   <button onclick="enviarMensaje()">Enviar</button>
 
-  <h2>Mensajes</h2>
+  <h2><d>Mensajes</d></h2>
   <div id="mensajes"></div>
+
+  <button id="cerrarSesion">Cerrar sesión</button>
 
   <script>
     // Configuración de Firebase
-var firebaseConfig = {
+    var firebaseConfig = {
       apiKey: "AIzaSyCnlZcZTwdMhw1-izQ5JzHTp7zGN3LByO8",
       authDomain: "vdlpyl-studio.firebaseapp.com",
       projectId: "vdlpyl-studio",
@@ -40,6 +50,9 @@ var firebaseConfig = {
         db.collection("usuarios").doc(user.uid).get().then(doc => {
           if (doc.exists) {
             usuario = doc.data().nombre;
+
+            // Mostrar el nombre del usuario en pantalla
+            document.getElementById("userNameDisplay").textContent = "Usuario: " + usuario;
 
             db.collection("usuarios_aprobados").doc(usuario).get().then(doc => {
               if (doc.exists) {
@@ -66,8 +79,14 @@ var firebaseConfig = {
       const receptor = document.getElementById("receptor").value.trim();
       const texto = document.getElementById("mensaje").value.trim();
 
+
       if (!receptor || !texto) {
         alert("Debes completar ambos campos.");
+        return;
+      }
+
+      if (texto.length > 100) {
+        alert("El mensaje no puede tener más de 100 caracteres.");
         return;
       }
 
@@ -92,45 +111,108 @@ var firebaseConfig = {
         });
     }
 
-    function cargarMensajes() {
-      db.collection("mensajes").orderBy("fecha", "desc").onSnapshot(snapshot => {
-        const contenedor = document.getElementById("mensajes");
-        contenedor.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.remitente === usuario || data.receptor === usuario) {
-            const div = document.createElement("div");
-            div.className = "mensaje";
-            div.innerHTML = `
-              <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}
-              <br><small>${data.fecha.toDate().toLocaleString()}</small>
-              <br><button onclick="confirmarEliminacion('${doc.id}')">Solicitar eliminación</button>
-            `;
-            contenedor.appendChild(div);
+function cargarMensajes() {
+  db.collection("mensajes").orderBy("fecha", "desc").onSnapshot(snapshot => {
+    const contenedor = document.getElementById("mensajes");
+    contenedor.innerHTML = "";
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.remitente === usuario || data.receptor === usuario) {
+        const div = document.createElement("div");
+        div.className = "mensaje";
+
+        let estadoEliminacion = "";
+        let botonAccion = "";
+        let yaSolicito = false;
+
+        if (data.remitente === usuario) {
+          yaSolicito = data.remitenteConfirmaEliminacion;
+        } else if (data.receptor === usuario) {
+          yaSolicito = data.receptorConfirmaEliminacion;
+        }
+
+        if (yaSolicito) {
+          estadoEliminacion = `<div style="color: orange;"><em>Eliminación solicitada</em></div>`;
+          botonAccion = `<button onclick="cancelarEliminacion('${doc.id}')">Cancelar eliminación</button>`;
+        } else {
+          botonAccion = `<button onclick="confirmarEliminacion('${doc.id}')">Solicitar eliminación</button>`;
+        }
+
+        div.innerHTML = `
+          <strong>${data.remitente}</strong> → <strong>${data.receptor}</strong>: ${data.texto}
+          <br><small>${data.fecha.toDate().toLocaleString()}</small>
+          <br>${botonAccion}
+          ${estadoEliminacion}
+        `;
+        contenedor.appendChild(div);
+      }
+    });
+  });
+}
+
+
+
+
+    function confirmarEliminacion(idMensaje) {
+      db.collection("mensajes").doc(idMensaje).get().then(doc => {
+        const data = doc.data();
+        const actualizaciones = {};
+
+        if (data.remitente === usuario) {
+          actualizaciones.remitenteConfirmaEliminacion = true;
+        } else if (data.receptor === usuario) {
+          actualizaciones.receptorConfirmaEliminacion = true;
+        }
+
+        db.collection("mensajes").doc(idMensaje).update(actualizaciones).then(() => {
+          if (data.remitenteConfirmaEliminacion && data.receptorConfirmaEliminacion) {
+            db.collection("mensajes").doc(idMensaje).delete();
           }
         });
       });
     }
 
-    function confirmarEliminacion(idMensaje) {
-      db.collection("mensajes").doc(idMensaje).get().then(doc => {
-        const data = doc.data();
-        if (data.remitente === usuario) {
-          db.collection("mensajes").doc(idMensaje).update({
-            remitenteConfirmaEliminacion: true
-          });
-        } else if (data.receptor === usuario) {
-          db.collection("mensajes").doc(idMensaje).update({
-            receptorConfirmaEliminacion: true
-          });
-        }
 
-        // Verificar si ambas partes confirmaron
-        if (data.remitenteConfirmaEliminacion && data.receptorConfirmaEliminacion) {
-          db.collection("mensajes").doc(idMensaje).delete();
-        }
+
+function cancelarEliminacion(idMensaje) {
+  db.collection("mensajes").doc(idMensaje).get().then(doc => {
+    const data = doc.data();
+
+    if (data.remitente === usuario) {
+      db.collection("mensajes").doc(idMensaje).update({
+        remitenteConfirmaEliminacion: false
+      });
+    } else if (data.receptor === usuario) {
+      db.collection("mensajes").doc(idMensaje).update({
+        receptorConfirmaEliminacion: false
       });
     }
+  });
+}
+
+
+
+
+    // Cerrar sesión
+    document.getElementById("cerrarSesion").addEventListener("click", () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = "login.html";
+      }).catch(error => {
+        console.error("Error al cerrar sesión:", error);
+      });
+    });
   </script>
+
+
+<br><br><br>
+<B>Nota</B>
+<p>Cada mensaje puede tener hasta 100 caracteres.</p>
+<p>Puede tener hasta 10 mensajes de cada persona.</p>
+<!--<p>La paciencia es sabiduría, aplicada en el tiempo.</p>-->
+<br><br><br><br><br><br><br>
+<h6>
+  <!--home page = página de inicio-->
+  <a href="https://VDLPYL.github.io/VDLPYL">VDLPYL</a>
+</h6>
 </body>
 </html>
