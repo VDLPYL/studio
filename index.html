@@ -153,24 +153,31 @@ function cargarMensajes() {
 
 
 
-    function confirmarEliminacion(idMensaje) {
-      db.collection("mensajes").doc(idMensaje).get().then(doc => {
-        const data = doc.data();
-        const actualizaciones = {};
 
-        if (data.remitente === usuario) {
-          actualizaciones.remitenteConfirmaEliminacion = true;
-        } else if (data.receptor === usuario) {
-          actualizaciones.receptorConfirmaEliminacion = true;
-        }
+function confirmarEliminacion(idMensaje) {
+  db.collection("mensajes").doc(idMensaje).get().then(doc => {
+    const data = doc.data();
+    const actualizaciones = {};
 
-        db.collection("mensajes").doc(idMensaje).update(actualizaciones).then(() => {
-          if (data.remitenteConfirmaEliminacion && data.receptorConfirmaEliminacion) {
-            db.collection("mensajes").doc(idMensaje).delete();
-          }
-        });
-      });
+    if (data.remitente === usuario) {
+      actualizaciones.remitenteConfirmaEliminacion = true;
+    } else if (data.receptor === usuario) {
+      actualizaciones.receptorConfirmaEliminacion = true;
     }
+
+    db.collection("mensajes").doc(idMensaje).update(actualizaciones).then(() => {
+      // Esperar a que se actualice y luego volver a consultar
+      db.collection("mensajes").doc(idMensaje).get().then(nuevoDoc => {
+        const nuevoData = nuevoDoc.data();
+        if (nuevoData.remitenteConfirmaEliminacion && nuevoData.receptorConfirmaEliminacion) {
+          db.collection("mensajes").doc(idMensaje).delete();
+        }
+      });
+    });
+  });
+}
+
+
 
 
 
@@ -208,7 +215,7 @@ function cancelarEliminacion(idMensaje) {
 <B>Nota</B>
 <p>Cada mensaje puede tener hasta 100 caracteres.</p>
 <p>Puede tener hasta 10 mensajes de cada persona.</p>
-<!--<p>La paciencia es sabiduría, aplicada en el tiempo.</p>-->
+<!--La paciencia es sabiduría, aplicada en el tiempo.-->
 <br><br><br><br><br><br><br>
 <h6>
   <!--home page = página de inicio-->
